@@ -1,0 +1,56 @@
+# 환경변수 (API 키 보호 - 절대 커밋 금지)
+.env
+
+# 수집 데이터 및 모델 (대용량 파일 제외)
+data/raw/
+data/processed/
+data/models/
+data/geo/
+*.csv
+*.db
+*.sqlite
+*.pkl
+*.geojson
+
+# 루트 로그 파일
+logs.log
+
+# 파이썬
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
+
+# 주피터
+.ipynb_checkpoints/
+*.ipynb_checkpoints/
+
+# 로그
+logs/*.log
+
+# 가상환경
+venv/
+.venv/
+env/
+ENV/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# pytest
+.pytest_cache/
+.coverage
+htmlcov/
