@@ -457,7 +457,7 @@ def geocode(
 )
 @click.option(
     "--model", "model_type",
-    type=click.Choice(["lgbm", "xgboost", "ridge"]),
+    type=click.Choice(["lgbm", "xgboost", "rf", "ridge"]),
     default="lgbm",
     show_default=True,
     help="사용할 ML 모델",
@@ -640,6 +640,7 @@ def train(
         sys.exit(1)
 
     pipeline = MLPipeline(model_type=model_type)
+    pipeline.split_ = "complex" if complex_split else "time"
 
     # 5. 피처 행렬 생성 (compare / Optuna / 기본 공통)
     X, y = pipeline.build_feature_matrix(df_trade)
@@ -687,8 +688,12 @@ def train(
         click.echo("\n=== 피처 중요도 (상위 15개) ===")
         click.echo(fi_df.head(15).to_string(index=False))
 
-    # 8. 모델 저장 (기본명은 data_type 포함)
-    save_name = name if name != "price_model" else f"price_model_{data_type}"
+    # 8. 모델 저장 (기본명은 data_type + model_type + split 방식 포함)
+    if name != "price_model":
+        save_name = name
+    else:
+        split_tag = "complex" if complex_split else "time"
+        save_name = f"price_model_{data_type}_{model_type}_{split_tag}"
     model_path = pipeline.save(save_name)
     click.echo(f"\n모델 저장: {model_path}")
 

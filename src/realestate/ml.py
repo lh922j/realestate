@@ -195,6 +195,17 @@ class MLPipeline:
                 verbosity=0,
             )
 
+        elif self.model_type == "rf":
+            from sklearn.ensemble import RandomForestRegressor
+            return RandomForestRegressor(
+                n_estimators=100,
+                max_depth=20,
+                min_samples_leaf=10,
+                max_features=0.7,
+                n_jobs=-1,
+                random_state=42,
+            )
+
         elif self.model_type == "ridge":
             from sklearn.linear_model import Ridge
             from sklearn.preprocessing import StandardScaler
@@ -237,7 +248,8 @@ class MLPipeline:
         self.model.fit(X_train, y_train)
         logger.info("모델 학습 완료")
 
-        return self.evaluate(X_test, y_test)
+        self.metrics_ = self.evaluate(X_test, y_test)
+        return self.metrics_
 
     def evaluate(
         self,
@@ -391,6 +403,8 @@ class MLPipeline:
                 "feature_names":  self.feature_names_,
                 "label_encoders": self.label_encoders,
                 "trained_at":     datetime.now().isoformat(),
+                "metrics":        getattr(self, "metrics_", {}),
+                "split":          getattr(self, "split_", "time"),
             },
             path,
         )
@@ -720,6 +734,45 @@ class MLPipeline:
             )
 
         return df
+
+    def shap_analysis(
+        self,
+        X: pd.DataFrame,
+        max_samples: int = 2000,
+    ) -> dict:
+        """
+        SHAP TreeExplainer로 피처 영향도 분석
+
+        Args:
+            X:           build_feature_matrix()로 생성한 피처 행렬
+            max_samples: SHAP 계산에 사용할 최대 샘플 수
+
+        Returns:
+            {
+                "shap_values": np.ndarray (n_samples × n_features, log1p 공간),
+                "X_sample":    pd.DataFrame,
+                "base_value":  float (log1p 공간 기준값),
+                "feature_names": list[str],
+            }
+        """
+        try:
+            import shap
+        except ImportError:
+            raise ImportError("pip install shap")
+
+        if self.model is None:
+            raise RuntimeError("모델이 학습되지 않았습니다. train()을 먼저 호출하세요.")
+
+        X_sample = X.sample(min(max_samples, len(X)), random_state=42)
+        explainer = shap.TreeExplainer(self.model)
+        shap_values = explainer.shap_values(X_sample)
+
+        return {
+            "shap_values":   np.array(shap_values),
+            "X_sample":      X_sample,
+            "base_value":    float(explainer.expected_value),
+            "feature_names": list(X_sample.columns),
+        }
 
     def feature_importance(self) -> pd.DataFrame:
         """

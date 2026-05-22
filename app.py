@@ -8,14 +8,14 @@ st.set_page_config(
 )
 
 st.title("🏠 한국 아파트 실거래가 분석 · 예측")
-st.caption("국토교통부 MOLIT API + Kakao 지오코딩 + LightGBM | 수도권 2020–2025")
+st.caption("국토교통부 MOLIT API + Kakao 지오코딩 + ML | 수도권 2020–2025")
 
 col1, col2 = st.columns(2)
 with col1:
     st.info(
         "### 🔮 가격 예측\n"
         "지역 · 전용면적 · 층 · 건축년도를 입력하면\n"
-        "LightGBM 모델이 예상 매매가를 계산합니다.\n\n"
+        "LightGBM / XGBoost / RandomForest 중 선택한 모델이 예상 매매가를 계산합니다.\n\n"
         "👈 왼쪽 사이드바에서 **가격예측** 페이지를 선택하세요"
     )
 with col2:
@@ -28,12 +28,22 @@ with col2:
 
 st.divider()
 
-c1, c2, c3, c4 = st.columns(4)
+# 데이터 현황
+c1, c2, c3 = st.columns(3)
 c1.metric("수집 기간", "2020.01 – 2025.02")
 c2.metric("수집 지역", "수도권 56개 구")
-c3.metric("총 거래 건수", "약 24만 건")
-c4.metric("예측 모델", "LightGBM")
+c3.metric("총 거래 건수", "766,103 건")
 
-st.caption(
-    "모델 성능: MAE 1.47억 · R² 0.90 (시계열 분리) / MAE 1.54억 · R² 0.85 (단지 분리)"
-)
+st.divider()
+
+# 모델 성능 비교
+st.subheader("모델 성능 비교")
+
+import pandas as _pd
+cmp_data = _pd.DataFrame([
+    {"모델": "RandomForest", "시계열 R²": 0.9267, "단지 R²": 0.8688, "시계열 MAE": "0.82억", "단지 MAE": "0.99억"},
+    {"모델": "LightGBM",     "시계열 R²": 0.9183, "단지 R²": 0.8924, "시계열 MAE": "0.93억", "단지 MAE": "0.90억"},
+    {"모델": "XGBoost",      "시계열 R²": 0.9000, "단지 R²": 0.8855, "시계열 MAE": "1.07억", "단지 MAE": "0.94억"},
+])
+st.dataframe(cmp_data, hide_index=True, use_container_width=True)
+st.caption("시계열 분리: cutoff 2024-01-01 | 단지 분리: unseen 단지 20% holdout")
