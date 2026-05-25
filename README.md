@@ -4,7 +4,7 @@
 Kakao 지오코딩 + 공간 피처 엔지니어링 + ML 앙상블로 가격을 예측하며,  
 Isolation Forest로 이상 거래를 탐지하는 end-to-end 데이터 파이프라인입니다.
 
-> **데이터**: 수도권 아파트 매매 766,103건 (2020.01 – 2025.02)
+> **데이터**: 수도권 아파트 매매 1,129,994건 (2020.01 – 2026.04)
 
 ---
 
@@ -78,23 +78,24 @@ Isolation Forest로 이상 거래를 탐지하는 end-to-end 데이터 파이프
 
 > **핵심 질문**: "같은 모델이 알고 있는 단지(시계열)와 처음 보는 단지(단지 분리)에서 각각 얼마나 잘 예측하는가?"
 
-| 모델 | 시계열 R² | 단지 R² | 시계열 MAE | 단지 MAE | 성능 하락폭 |
-|------|---------|---------|----------|---------|-----------|
-| RandomForest | **0.927** | 0.869 | **0.82억** | 0.99억 | ΔR² 0.058 (크다) |
-| LightGBM | 0.918 | **0.892** | 0.93억 | **0.90억** | ΔR² 0.026 (작다) |
-| XGBoost | 0.900 | 0.886 | 1.07억 | 0.94억 | ΔR² 0.014 |
+| 모델 | 시계열 R² | 단지 R² | 시계열 MAE | 단지 MAE |
+|------|---------|---------|----------|---------|
+| RandomForest | **0.887** | 0.859 | 1.23억 | 1.17억 |
+| LightGBM | 0.880 | **0.883** | 1.28억 | **1.07억** |
+| XGBoost | 0.857 | 0.878 | 1.42억 | 1.12억 |
+
+> 시계열 분리: cutoff 2025-01-01 (테스트셋 2025~2026) | 단지 분리: unseen 단지 20% holdout
 
 **해석**
-- RandomForest는 시계열에서 가장 강하지만 단지 분리에서 성능이 가장 많이 떨어집니다.  
-  → 좌표(위도·경도)를 **암기**하는 경향이 강해, 처음 보는 단지 위치를 추론하는 능력이 상대적으로 약합니다.
-- LightGBM은 단지 분리에서 R²와 MAE 모두 1위입니다.  
-  → 좌표 암기에 덜 의존하고 거리 피처(`dist_to_gangnam_km` 등)로 위치 패턴을 **추론**합니다.
+- 2025~2026 테스트셋 기준으로 전반적인 R² 하락 — 금리 인하 기대 + 시장 회복기의 가격 변동성이 커서 예측 난도가 높아졌습니다.
+- LightGBM·XGBoost는 단지 분리 R²가 시계열보다 높습니다 — 최근 시장 급등기에 좌표 암기 효과보다 지역 패턴 추론이 더 안정적임을 시사합니다.
+- RandomForest는 여전히 시계열 R²가 단지보다 높아, 좌표 암기 의존도가 상대적으로 강합니다.
 
 #### 두 분리 방식의 차이
 
 | | 시계열 분리 | 단지 분리 |
 |--|-----------|---------|
-| **분리 기준** | 날짜 (cutoff 2024-01-01) | 아파트 단지 ID (`apt_name + lawd_cd`) |
+| **분리 기준** | 날짜 (cutoff 2025-01-01) | 아파트 단지 ID (`apt_name + lawd_cd`) |
 | **테스트 조건** | 학습에 있던 단지, 미래 시점 | 학습에 없던 단지 (14,273개 중 20%) |
 | **측정하는 것** | 시장 흐름 예측력 | 처음 보는 위치 일반화 능력 |
 | **적합한 상황** | 기존 단지 시세 조회·담보 평가 | 신규 단지·분양가 추정·모델 일반화 성능 주장 |
@@ -256,13 +257,13 @@ cp .env.example .env    # API 키 입력
 
 ```bash
 # 데이터 수집
-python -m src.realestate.main collect --type trade --region 수도권 --start 202001 --end 202502
+python -m src.realestate.main collect --type trade --region 수도권 --start 202001 --end 202604
 
 # 지오코딩
 python -m src.realestate.main geocode --region 수도권
 
 # ML 학습 — 시계열 분리 (기본)
-python -m src.realestate.main train --model lgbm --cutoff 2024-01-01
+python -m src.realestate.main train --model lgbm --cutoff 2025-01-01
 
 # ML 학습 — 단지 분리 (일반화 성능 측정)
 python -m src.realestate.main train --model lgbm --complex-split
@@ -293,7 +294,7 @@ streamlit run app.py
 | 옵션 | 설명 | 기본값 |
 |------|------|--------|
 | `--model` | 모델 선택 (`lgbm` / `xgboost` / `rf`) | `lgbm` |
-| `--cutoff` | 시계열 분리 기준일 | `2024-01-01` |
+| `--cutoff` | 시계열 분리 기준일 | `2025-01-01` |
 | `--complex-split` | 단지 단위 분리 (flag) | 시계열 분리 |
 | `--test-ratio` | 단지 분리 시 테스트 비율 | `0.2` |
 | `--optuna-trials` | Optuna HPO 탐색 횟수 | `0` |
@@ -317,9 +318,3 @@ streamlit run app.py
 
 ---
 
-## 🔮 향후 계획
-
-- [ ] LSTM 기반 지역별 월평균 가격 시계열 예측
-- [ ] RAG 기반 부동산 Q&A AI Agent (LangChain + ChromaDB)
-- [ ] 전월세 전환율 분석 및 갭투자 리스크 지표
-- [ ] Streamlit Cloud 배포 (LightGBM·XGBoost 경량 버전)
