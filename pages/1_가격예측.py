@@ -254,7 +254,7 @@ with st.sidebar:
                 st.dataframe(cmp_df, hide_index=True, use_container_width=True)
     else:
         st.error("학습된 모델이 없습니다.")
-        st.code("python -m src.realestate.main train --model lgbm --cutoff 2024-01-01")
+        st.code("python -m src.realestate.main train --model lgbm --cutoff 2025-01-01")
         st.stop()
 
     st.divider()
