@@ -103,7 +103,7 @@ with st.sidebar:
     sel_gu  = st.multiselect("구/시 (빈칸=전체)", list(gu_opts.keys()))
     codes   = tuple(gu_opts[g] for g in sel_gu) if sel_gu else tuple(pool)
 
-    years   = st.slider("기간 (연도)", 2020, 2025, (2020, 2025))
+    years   = st.slider("기간 (연도)", 2020, 2026, (2020, 2026))
 
 if not codes:
     st.warning("지역을 선택해주세요.")
